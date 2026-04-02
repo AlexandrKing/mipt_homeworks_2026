@@ -64,8 +64,9 @@ class LFUPolicy(Policy[K]):
     _excluded_key: K | None = field(default=None, init=False)
 
     def register_access(self, key: K) -> None:
-        if key in self._key_counter:
-            self._key_counter[key] += 1
+        current_count = self._key_counter.get(key, 0)
+        if current_count:
+            self._key_counter[key] = current_count + 1
         else:
             self._key_counter[key] = 1
             self._order.append(key)
@@ -81,11 +82,11 @@ class LFUPolicy(Policy[K]):
         min_keys = self._get_keys_with_min_freq()
         if not min_keys:
             return None
-            
+
         is_over = len(self._key_counter) > self.capacity
         only_one = len(min_keys) == 1
         is_last = only_one and min_keys[0] == self._order[-1]
-        
+
         if is_over and is_last:
             return self._get_second_min_key(min_keys[0])
         return min_keys[0]
@@ -110,23 +111,28 @@ class LFUPolicy(Policy[K]):
         candidates = [key for key in self._key_counter if key != self._excluded_key]
         if not candidates:
             return []
-        
+
         min_freq = min(self._key_counter[key] for key in candidates)
-        return [key for key in self._order if key in candidates and self._key_counter[key] == min_freq]
+
+        result = []
+        for key in self._order:
+            if key in candidates and self._key_counter[key] == min_freq:
+                result.append(key)
+        return result
 
     def _get_second_min_key(self, excluded_key: K) -> K | None:
-        best_key = None
-        best_freq = None
+        candidates = []
         for key in self._order:
             if key == excluded_key or key == self._excluded_key:
                 continue
             freq = self._key_counter.get(key)
             if freq is None:
                 continue
-            if best_freq is None or freq < best_freq:
-                best_freq = freq
-                best_key = key
-        return best_key
+            candidates.append((freq, key))
+
+        if not candidates:
+            return None
+        return min(candidates)[1]
 
 
 class MIPTCache(Cache[K, V]):
