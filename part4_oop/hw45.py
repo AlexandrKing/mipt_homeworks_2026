@@ -32,6 +32,10 @@ class DictStorage(Storage[K, V]):
 class FIFOPolicy(Policy[K]):
     capacity: int = 5
     _order: list[K] = field(default_factory=list, init=False)
+    
+    def __init__(self, capacity: int) -> None:
+        self.capacity = capacity
+        self._order = []
 
     def register_access(self, key: K) -> None:
         if key not in self._order:
@@ -59,6 +63,10 @@ class FIFOPolicy(Policy[K]):
 class LRUPolicy(Policy[K]):
     capacity: int = 5
     _order: list[K] = field(default_factory=list, init=False)
+    
+    def __init__(self, capacity: int) -> None:
+        self.capacity = capacity
+        self._order = []
 
     def register_access(self, key: K) -> None:
         if key in self._order:
@@ -90,7 +98,12 @@ class LFUPolicy(Policy[K]):
     _key_counter: dict[K, int] = field(default_factory=dict, init=False)
     _order: list[K] = field(default_factory=list, init=False)
     _excluded_key: K | None = field(default=None, init=False)
-
+    
+    def __init__(self, capacity: int) -> None:
+        self.capacity = capacity
+        self._order = []
+        self._key_counter = {}
+         
     def register_access(self, key: K) -> None:
         current_count = self._key_counter.get(key, 0)
         if current_count:
