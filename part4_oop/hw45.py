@@ -34,7 +34,35 @@ class FIFOPolicy(Policy[K]):
     _order: list[K] = field(default_factory=list, init=False)
 
     def register_access(self, key: K) -> None:
-        # if key not in self._order:
+        if key not in self._order:
+            self._order.append(key)
+
+    def get_key_to_evict(self) -> K | None:
+        if not self.has_keys:
+            return None
+        if len(self._order) > self.capacity:
+            return self._order[0]
+        return None
+
+    def remove_key(self, key: K) -> None:
+        if key in self._order:
+            self._order.remove(key)
+
+    def clear(self) -> None:
+        self._order.clear()
+
+    @property
+    def has_keys(self) -> bool:
+        return len(self._order) > 0
+
+
+class LRUPolicy(Policy[K]):
+    capacity: int = 5
+    _order: list[K] = field(default_factory=list, init=False)
+
+    def register_access(self, key: K) -> None:
+        if key in self._order:
+            self.remove_key(key)
         self._order.append(key)
 
     def get_key_to_evict(self) -> K | None:
@@ -121,15 +149,11 @@ class LFUPolicy(Policy[K]):
         return result
 
     def _get_second_min_key(self, excluded_key: K) -> K | None:
-        candidates = []
-        for key in self._order:
-            if key == excluded_key or key == self._excluded_key:
-                continue
-            freq = self._key_counter.get(key)
-            if freq is None:
-                continue
-            candidates.append((freq, key))
-
+        candidates = [
+            (freq, key)
+            for key in self._order
+            if key != excluded_key and key != self._excluded_key and (freq := self._key_counter.get(key)) is not None
+        ]
         if not candidates:
             return None
         return min(candidates)[1]
