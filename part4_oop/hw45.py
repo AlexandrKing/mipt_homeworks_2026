@@ -57,40 +57,11 @@ class FIFOPolicy(Policy[K]):
 
 
 @dataclass
-class LRUPolicy(Policy[K]):
-    capacity: int = 5
-    _order: list[K] = field(default_factory=list, init=False)
-
-    def register_access(self, key: K) -> None:
-        if key in self._order:
-            self.remove_key(key)
-        self._order.append(key)
-
-    def get_key_to_evict(self) -> K | None:
-        if not self.has_keys:
-            return None
-        if len(self._order) > self.capacity:
-            return self._order[0]
-        return None
-
-    def remove_key(self, key: K) -> None:
-        if key in self._order:
-            self._order.remove(key)
-
-    def clear(self) -> None:
-        self._order.clear()
-
-    @property
-    def has_keys(self) -> bool:
-        return len(self._order) > 0
-
-
-@dataclass
 class LFUPolicy(Policy[K]):
-    previos: K | None = None
     capacity: int = 5
     _key_counter: dict[K, int] = field(default_factory=dict, init=False)
     _order: list[K] = field(default_factory=list, init=False)
+    _excluded_key: K | None = field(default=None, init=False)
 
     def register_access(self, key: K) -> None:
         if key in self._key_counter:
@@ -98,18 +69,23 @@ class LFUPolicy(Policy[K]):
         else:
             self._key_counter[key] = 1
             self._order.append(key)
-            self.previos = key
+            if len(self._key_counter) > self.capacity:
+                self._excluded_key = key
 
     def get_key_to_evict(self) -> K | None:
         if not self.has_keys:
             return None
-        if len(self._key_counter) < self.capacity:
+        if len(self._key_counter) <= self.capacity:
             return None
 
         min_keys = self._get_keys_with_min_freq()
+        if not min_keys:
+            return None
+            
         is_over = len(self._key_counter) > self.capacity
         only_one = len(min_keys) == 1
         is_last = only_one and min_keys[0] == self._order[-1]
+        
         if is_over and is_last:
             return self._get_second_min_key(min_keys[0])
         return min_keys[0]
@@ -118,29 +94,35 @@ class LFUPolicy(Policy[K]):
         if key in self._key_counter:
             self._key_counter.pop(key)
             self._order.remove(key)
+            if self._excluded_key == key:
+                self._excluded_key = None
 
     def clear(self) -> None:
         self._key_counter.clear()
         self._order.clear()
+        self._excluded_key = None
 
     @property
     def has_keys(self) -> bool:
         return len(self._key_counter) > 0
 
     def _get_keys_with_min_freq(self) -> list[K]:
-        candidates = [key for key in self._key_counter if key != self.previos]
+        candidates = [key for key in self._key_counter if key != self._excluded_key]
         if not candidates:
             return []
+        
         min_freq = min(self._key_counter[key] for key in candidates)
-        return [key for key in candidates if self._key_counter[key] == min_freq]
+        return [key for key in self._order if key in candidates and self._key_counter[key] == min_freq]
 
     def _get_second_min_key(self, excluded_key: K) -> K | None:
         best_key = None
         best_freq = None
         for key in self._order:
-            if key == excluded_key or key is self.previos:
+            if key == excluded_key or key == self._excluded_key:
                 continue
-            freq = self._key_counter[key]
+            freq = self._key_counter.get(key)
+            if freq is None:
+                continue
             if best_freq is None or freq < best_freq:
                 best_freq = freq
                 best_key = key
