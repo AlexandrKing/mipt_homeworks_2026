@@ -216,5 +216,3 @@ class CachedProperty[V]:
         value = self.func(instance)
         instance.cache.set(cache_key, value)
         return value
-
-вв
