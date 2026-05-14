@@ -112,17 +112,12 @@ class LFUPolicy(Policy[K]):
             return None
 
         min_count = min(self._key_counter.values())
-        keys_with_min_count = [
-            key for key in self._order if self._key_counter[key] == min_count
-        ]
+        keys_with_min_count = [key for key in self._order if self._key_counter[key] == min_count]
 
         has_one_min_key = len(keys_with_min_count) == 1
         last_key = self._order[-1]
 
-        only_new_key_has_min_count = (
-            has_one_min_key
-            and keys_with_min_count[0] == last_key
-        )
+        only_new_key_has_min_count = has_one_min_key and keys_with_min_count[0] == last_key
 
         if not only_new_key_has_min_count:
             return keys_with_min_count[0]
