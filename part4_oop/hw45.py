@@ -105,25 +105,18 @@ class LFUPolicy(Policy[K]):
         self._key_counter = {}
 
     def register_access(self, key: K) -> None:
-        if key in self._key_counter:
-            self._key_counter[key] += 1
-        else:
-            self._key_counter[key] = 1
+        counter = self._key_counter.get(key, 0)
+
+        if counter == 0:
             self._order.append(key)
 
+        self._key_counter[key] = counter + 1
+
     def get_key_to_evict(self) -> K | None:
-        if not self.has_keys:
-            return None
-        if len(self._key_counter) < self.capacity:
+        if len(self._key_counter) <= self.capacity:
             return None
 
-        min_keys = self._get_keys_with_min_freq()
-        is_over = len(self._key_counter) > self.capacity
-        only_one = len(min_keys) == 1
-        is_last = only_one and min_keys[0] == self._order[-1]
-        if is_over and is_last:
-            return self._get_second_min_key(min_keys[0])
-        return min_keys[0]
+        return self._get_keys_with_min_freq()[0]
 
     def remove_key(self, key: K) -> None:
         if key in self._key_counter:
@@ -140,19 +133,7 @@ class LFUPolicy(Policy[K]):
 
     def _get_keys_with_min_freq(self) -> list[K]:
         min_count = min(self._key_counter.values())
-        return [k for k in self._order if self._key_counter[k] == min_count]
-
-    def _get_second_min_key(self, excluded_key: K) -> K | None:
-        best_key = None
-        best_freq = None
-        for key in self._order:
-            if key == excluded_key:
-                continue
-            freq = self._key_counter[key]
-            if best_freq is None or freq < best_freq:
-                best_freq = freq
-                best_key = key
-        return best_key
+        return [key for key in self._order if self._key_counter[key] == min_count]
 
 
 class MIPTCache(Cache[K, V]):
