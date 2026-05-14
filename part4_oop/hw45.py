@@ -99,11 +99,6 @@ class LFUPolicy(Policy[K]):
     _key_counter: dict[K, int] = field(default_factory=dict, init=False)
     _order: list[K] = field(default_factory=list, init=False)
 
-    def __init__(self, capacity: int = 5) -> None:
-        self.capacity = capacity
-        self._order = []
-        self._key_counter = {}
-
     def register_access(self, key: K) -> None:
         counter = self._key_counter.get(key, 0)
 
@@ -116,11 +111,36 @@ class LFUPolicy(Policy[K]):
         if len(self._key_counter) <= self.capacity:
             return None
 
-        return self._get_keys_with_min_freq()[0]
+        min_count = min(self._key_counter.values())
+        keys_with_min_count = [
+            key for key in self._order if self._key_counter[key] == min_count
+        ]
+
+        only_new_key_has_min_count = (
+            len(keys_with_min_count) == 1
+            and keys_with_min_count[0] == self._order[-1]
+        )
+
+        if not only_new_key_has_min_count:
+            return keys_with_min_count[0]
+
+        old_keys = self._order[:-1]
+
+        if not old_keys:
+            return keys_with_min_count[0]
+
+        min_count = min(self._key_counter[key] for key in old_keys)
+
+        for key in old_keys:
+            if self._key_counter[key] == min_count:
+                return key
+
+        return None
 
     def remove_key(self, key: K) -> None:
-        if key in self._key_counter:
-            self._key_counter.pop(key)
+        self._key_counter.pop(key, None)
+
+        if key in self._order:
             self._order.remove(key)
 
     def clear(self) -> None:
@@ -130,11 +150,6 @@ class LFUPolicy(Policy[K]):
     @property
     def has_keys(self) -> bool:
         return len(self._key_counter) > 0
-
-    def _get_keys_with_min_freq(self) -> list[K]:
-        min_count = min(self._key_counter.values())
-        return [key for key in self._order if self._key_counter[key] == min_count]
-
 
 class MIPTCache(Cache[K, V]):
     def __init__(self, storage: Storage[K, V], policy: Policy[K]) -> None:
