@@ -112,14 +112,9 @@ class LFUPolicy(Policy[K]):
             return None
 
         min_count = min(self._key_counter.values())
-        keys_with_min_count = [
-            key for key in self._order if self._key_counter[key] == min_count
-        ]
+        keys_with_min_count = [key for key in self._order if self._key_counter[key] == min_count]
 
-        only_new_key_has_min_count = (
-            len(keys_with_min_count) == 1
-            and keys_with_min_count[0] == self._order[-1]
-        )
+        only_new_key_has_min_count = len(keys_with_min_count) == 1 and keys_with_min_count[0] == self._order[-1]
 
         if not only_new_key_has_min_count:
             return keys_with_min_count[0]
@@ -150,6 +145,7 @@ class LFUPolicy(Policy[K]):
     @property
     def has_keys(self) -> bool:
         return len(self._key_counter) > 0
+
 
 class MIPTCache(Cache[K, V]):
     def __init__(self, storage: Storage[K, V], policy: Policy[K]) -> None:
