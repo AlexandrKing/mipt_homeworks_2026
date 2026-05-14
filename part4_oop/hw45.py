@@ -32,7 +32,7 @@ class DictStorage(Storage[K, V]):
 class FIFOPolicy(Policy[K]):
     capacity: int = 5
     _order: list[K] = field(default_factory=list, init=False)
-    
+
     def __init__(self, capacity: int = 5) -> None:
         self.capacity = capacity
         self._order = []
@@ -64,7 +64,7 @@ class FIFOPolicy(Policy[K]):
 class LRUPolicy(Policy[K]):
     capacity: int = 5
     _order: list[K] = field(default_factory=list, init=False)
-    
+
     def __init__(self, capacity: int = 5) -> None:
         self.capacity = capacity
         self._order = []
@@ -98,7 +98,7 @@ class LFUPolicy(Policy[K]):
     capacity: int = 5
     _key_counter: dict[K, int] = field(default_factory=dict, init=False)
     _order: list[K] = field(default_factory=list, init=False)
-    
+
     def __init__(self, capacity: int = 5) -> None:
         self.capacity = capacity
         self._order = []
