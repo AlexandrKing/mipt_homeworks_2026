@@ -77,7 +77,7 @@ class CircuitBreaker:
             self._block_time = None
             return result
 
-        return cast(CallableWithMeta[P, R_co], wrapper)
+        return cast("CallableWithMeta[P, R_co]", wrapper)
 
     @staticmethod
     def _is_positive_integer(number: int) -> bool:
