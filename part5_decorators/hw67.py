@@ -33,8 +33,10 @@ class BreakerError(Exception):
 def _is_positive_integer(number: int) -> bool:
     return isinstance(number, int) and not isinstance(number, bool) and number > 0
 
+
 def _get_func_name(func: CallableWithMeta[..., Any]) -> str:
     return f"{func.__module__}.{func.__name__}"
+
 
 def _collect_validation_errors(
     critical_count: int,
