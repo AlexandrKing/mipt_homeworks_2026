@@ -138,10 +138,7 @@ def is_cost_category_exists(category_name: str) -> bool:
     common_category = parts[0]
     target_category = parts[1]
 
-    return (
-        common_category in EXPENSE_CATEGORIES
-        and target_category in EXPENSE_CATEGORIES[common_category]
-    )
+    return common_category in EXPENSE_CATEGORIES and target_category in EXPENSE_CATEGORIES[common_category]
 
 
 def get_target_category(category_name: str) -> str:
