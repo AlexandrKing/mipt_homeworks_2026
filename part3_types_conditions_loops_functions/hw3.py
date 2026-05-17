@@ -8,6 +8,19 @@ INCORRECT_DATE_MSG = "Invalid date!"
 NOT_EXISTS_CATEGORY = "Category not exists!"
 OP_SUCCESS_MSG = "Added"
 
+DATE_FORMAT_LENGTH = 10
+MONTHS_IN_YEAR = 12
+CATEGORY_PARTS_COUNT = 2
+
+INCOME_COMMAND_ARGS_COUNT = 3
+COST_CATEGORIES_COMMAND_ARGS_COUNT = 2
+COST_COMMAND_ARGS_COUNT = 4
+STATS_COMMAND_ARGS_COUNT = 2
+
+LEAP_YEAR_DIVISOR = 4
+CENTURY_YEAR_DIVISOR = 100
+FULL_LEAP_YEAR_DIVISOR = 400
+
 
 EXPENSE_CATEGORIES = {
     "Food": ("Supermarket", "Restaurants", "FastFood", "Coffee", "Delivery"),
@@ -28,15 +41,25 @@ financial_transactions_storage: list[dict[str, Any]] = []
 def is_leap_year(year: int) -> bool:
     """
     Для заданного года определяет: високосный (True) или невисокосный (False).
+
+    :param int year: Проверяемый год
+    :return: Значение високосности.
+    :rtype: bool
     """
-    return year % 400 == 0 or (year % 4 == 0 and year % 100 != 0)
+    return year % FULL_LEAP_YEAR_DIVISOR == 0 or (
+        year % LEAP_YEAR_DIVISOR == 0 and year % CENTURY_YEAR_DIVISOR != 0
+    )
 
 
 def extract_date(maybe_dt: str) -> tuple[int, int, int] | None:
     """
     Парсит дату формата DD-MM-YYYY из строки.
+
+    :param str maybe_dt: Проверяемая строка
+    :return: typle формата (день, месяц, год) или None, если дата неправильная.
+    :rtype: tuple[int, int, int] | None
     """
-    if len(maybe_dt) != 10:
+    if len(maybe_dt) != DATE_FORMAT_LENGTH:
         return None
 
     if maybe_dt[2] != "-" or maybe_dt[5] != "-":
@@ -53,7 +76,7 @@ def extract_date(maybe_dt: str) -> tuple[int, int, int] | None:
     month = int(month_str)
     year = int(year_str)
 
-    if year <= 0 or month < 1 or month > 12:
+    if year <= 0 or month < 1 or month > MONTHS_IN_YEAR:
         return None
 
     days_in_month = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
@@ -73,12 +96,9 @@ def parse_amount(maybe_amount: str) -> float | None:
     if normalized == "":
         return None
 
-    if normalized[0] in "+-":
-        number_part = normalized[1:]
-    else:
-        number_part = normalized
+    number_part = normalized[1:] if normalized[0] in "+-" else normalized
 
-    if number_part == "" or number_part == ".":
+    if number_part in {"", "."}:
         return None
 
     dots_count = 0
@@ -121,8 +141,8 @@ def is_same_month(date_str: str, report_date: str) -> bool:
     if transaction_date is None or report_dt is None:
         return False
 
-    transaction_day, transaction_month, transaction_year = transaction_date
-    report_day, report_month, report_year = report_dt
+    _, transaction_month, transaction_year = transaction_date
+    _, report_month, report_year = report_dt
 
     return transaction_month == report_month and transaction_year == report_year
 
@@ -131,8 +151,10 @@ def get_all_cost_categories() -> list[str]:
     categories = []
 
     for common_category, target_categories in EXPENSE_CATEGORIES.items():
-        for target_category in target_categories:
-            categories.append(f"{common_category}::{target_category}")
+        categories.extend(
+            f"{common_category}::{target_category}"
+            for target_category in target_categories
+        )
 
     return sorted(categories)
 
@@ -140,7 +162,7 @@ def get_all_cost_categories() -> list[str]:
 def is_cost_category_exists(category_name: str) -> bool:
     parts = category_name.split("::")
 
-    if len(parts) != 2:
+    if len(parts) != CATEGORY_PARTS_COUNT:
         return False
 
     common_category = parts[0]
@@ -158,7 +180,6 @@ def get_target_category(category_name: str) -> str:
 
 def format_category_for_report(category_name: str) -> str:
     target_category = get_target_category(category_name)
-
     result = target_category[0]
 
     for index in range(1, len(target_category)):
@@ -254,7 +275,6 @@ def stats_handler(report_date: str) -> str:
 
             if is_same_month(transaction["date"], report_date):
                 month_expenses += amount
-
                 report_category = format_category_for_report(transaction["category"])
 
                 if report_category not in expenses_by_category:
@@ -293,6 +313,47 @@ def stats_handler(report_date: str) -> str:
     return "\n".join(lines)
 
 
+def handle_income_command(parts: list[str]) -> str:
+    if len(parts) != INCOME_COMMAND_ARGS_COUNT:
+        return UNKNOWN_COMMAND_MSG
+
+    amount = parse_amount(parts[1])
+
+    if amount is None:
+        return UNKNOWN_COMMAND_MSG
+
+    return income_handler(amount, parts[2])
+
+
+def handle_cost_command(parts: list[str]) -> str:
+    if (
+        len(parts) == COST_CATEGORIES_COMMAND_ARGS_COUNT
+        and parts[1] == "categories"
+    ):
+        return cost_categories_handler()
+
+    if len(parts) != COST_COMMAND_ARGS_COUNT:
+        return UNKNOWN_COMMAND_MSG
+
+    category_name = parts[1]
+    amount = parse_amount(parts[2])
+
+    if not is_cost_category_exists(category_name):
+        return f"{NOT_EXISTS_CATEGORY}\n{cost_categories_handler()}"
+
+    if amount is None:
+        return UNKNOWN_COMMAND_MSG
+
+    return cost_handler(category_name, amount, parts[3])
+
+
+def handle_stats_command(parts: list[str]) -> str:
+    if len(parts) != STATS_COMMAND_ARGS_COUNT:
+        return UNKNOWN_COMMAND_MSG
+
+    return stats_handler(parts[1])
+
+
 def handle_command(command: str) -> str:
     parts = command.split()
 
@@ -302,46 +363,21 @@ def handle_command(command: str) -> str:
     command_name = parts[0]
 
     if command_name == "income":
-        if len(parts) != 3:
-            return UNKNOWN_COMMAND_MSG
-
-        amount = parse_amount(parts[1])
-
-        if amount is None:
-            return UNKNOWN_COMMAND_MSG
-
-        return income_handler(amount, parts[2])
+        return handle_income_command(parts)
 
     if command_name == "cost":
-        if len(parts) == 2 and parts[1] == "categories":
-            return cost_categories_handler()
-
-        if len(parts) != 4:
-            return UNKNOWN_COMMAND_MSG
-
-        category_name = parts[1]
-        amount = parse_amount(parts[2])
-
-        if not is_cost_category_exists(category_name):
-            return f"{NOT_EXISTS_CATEGORY}\n{cost_categories_handler()}"
-
-        if amount is None:
-            return UNKNOWN_COMMAND_MSG
-
-        return cost_handler(category_name, amount, parts[3])
+        return handle_cost_command(parts)
 
     if command_name == "stats":
-        if len(parts) != 2:
-            return UNKNOWN_COMMAND_MSG
-
-        return stats_handler(parts[1])
+        return handle_stats_command(parts)
 
     return UNKNOWN_COMMAND_MSG
 
 
 def main() -> None:
-    for command in open(0):
-        print(handle_command(command.strip()))
+    with open(0) as stdin:
+        for command in stdin:
+            print(handle_command(command.strip()))
 
 
 if __name__ == "__main__":
