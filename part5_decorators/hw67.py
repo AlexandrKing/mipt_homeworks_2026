@@ -30,6 +30,7 @@ class BreakerError(Exception):
         self.func_name = func_name
         self.block_time = block_time
 
+
 def _is_exception_class(exception_class: object) -> bool:
     return isinstance(exception_class, type) and issubclass(exception_class, Exception)
 
@@ -68,11 +69,7 @@ class CircuitBreaker:
         time_to_recover: int = DEFAULT_RECOVERY_TIME,
         triggers_on: type[Exception] = Exception,
     ) -> None:
-        validation_errors = _collect_validation_errors(
-            critical_count,
-            time_to_recover,
-            triggers_on
-        )
+        validation_errors = _collect_validation_errors(critical_count, time_to_recover, triggers_on)
 
         if validation_errors:
             raise ExceptionGroup(VALIDATIONS_FAILED, validation_errors)
