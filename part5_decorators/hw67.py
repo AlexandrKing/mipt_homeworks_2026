@@ -4,6 +4,7 @@ from functools import wraps
 from typing import Any, NoReturn, ParamSpec, Protocol, TypeVar, cast
 from urllib.request import urlopen
 
+INVALID_TRIGGERS_ON = "Breaker trigger must be Exception subclass!"
 INVALID_CRITICAL_COUNT = "Breaker count must be positive integer!"
 INVALID_RECOVERY_TIME = "Breaker recovery time must be positive integer!"
 VALIDATIONS_FAILED = "Invalid decorator args."
@@ -29,6 +30,9 @@ class BreakerError(Exception):
         self.func_name = func_name
         self.block_time = block_time
 
+def _is_exception_class(exception_class: object) -> bool:
+    return isinstance(exception_class, type) and issubclass(exception_class, Exception)
+
 
 def _is_positive_integer(number: int) -> bool:
     return isinstance(number, int) and not isinstance(number, bool) and number > 0
@@ -41,6 +45,7 @@ def _get_func_name(func: CallableWithMeta[..., Any]) -> str:
 def _collect_validation_errors(
     critical_count: int,
     time_to_recover: int,
+    triggers_on: object,
 ) -> list[ValueError]:
     validation_errors = []
 
@@ -49,6 +54,9 @@ def _collect_validation_errors(
 
     if not _is_positive_integer(time_to_recover):
         validation_errors.append(ValueError(INVALID_RECOVERY_TIME))
+
+    if not _is_exception_class(triggers_on):
+        validation_errors.append(ValueError(INVALID_TRIGGERS_ON))
 
     return validation_errors
 
@@ -63,6 +71,7 @@ class CircuitBreaker:
         validation_errors = _collect_validation_errors(
             critical_count,
             time_to_recover,
+            triggers_on
         )
 
         if validation_errors:
