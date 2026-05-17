@@ -46,9 +46,7 @@ def is_leap_year(year: int) -> bool:
     :return: Значение високосности.
     :rtype: bool
     """
-    return year % FULL_LEAP_YEAR_DIVISOR == 0 or (
-        year % LEAP_YEAR_DIVISOR == 0 and year % CENTURY_YEAR_DIVISOR != 0
-    )
+    return year % FULL_LEAP_YEAR_DIVISOR == 0 or (year % LEAP_YEAR_DIVISOR == 0 and year % CENTURY_YEAR_DIVISOR != 0)
 
 
 def extract_date(maybe_dt: str) -> tuple[int, int, int] | None:
@@ -151,10 +149,7 @@ def get_all_cost_categories() -> list[str]:
     categories = []
 
     for common_category, target_categories in EXPENSE_CATEGORIES.items():
-        categories.extend(
-            f"{common_category}::{target_category}"
-            for target_category in target_categories
-        )
+        categories.extend(f"{common_category}::{target_category}" for target_category in target_categories)
 
     return sorted(categories)
 
@@ -168,10 +163,7 @@ def is_cost_category_exists(category_name: str) -> bool:
     common_category = parts[0]
     target_category = parts[1]
 
-    return (
-        common_category in EXPENSE_CATEGORIES
-        and target_category in EXPENSE_CATEGORIES[common_category]
-    )
+    return common_category in EXPENSE_CATEGORIES and target_category in EXPENSE_CATEGORIES[common_category]
 
 
 def get_target_category(category_name: str) -> str:
@@ -326,10 +318,7 @@ def handle_income_command(parts: list[str]) -> str:
 
 
 def handle_cost_command(parts: list[str]) -> str:
-    if (
-        len(parts) == COST_CATEGORIES_COMMAND_ARGS_COUNT
-        and parts[1] == "categories"
-    ):
+    if len(parts) == COST_CATEGORIES_COMMAND_ARGS_COUNT and parts[1] == "categories":
         return cost_categories_handler()
 
     if len(parts) != COST_COMMAND_ARGS_COUNT:
