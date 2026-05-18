@@ -153,11 +153,7 @@ def parse_amount(maybe_amount: str) -> float | None:
     if not normalized:
         return None
 
-    number_part = (
-        normalized[1:]
-        if normalized.startswith((PLUS_SIGN, MINUS_SIGN))
-        else normalized
-    )
+    number_part = normalized[1:] if normalized.startswith((PLUS_SIGN, MINUS_SIGN)) else normalized
     amount_parts = number_part.split(DECIMAL_POINT)
 
     if not number_part or len(amount_parts) > MAX_AMOUNT_PARTS:
@@ -199,8 +195,7 @@ def get_all_cost_categories() -> list[str]:
 
     for common_category, target_categories in EXPENSE_CATEGORIES.items():
         categories.extend(
-            f"{common_category}{CATEGORY_SEPARATOR}{target_category}"
-            for target_category in target_categories
+            f"{common_category}{CATEGORY_SEPARATOR}{target_category}" for target_category in target_categories
         )
 
     return categories
