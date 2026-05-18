@@ -32,15 +32,30 @@ MAX_AMOUNT_PARTS = 2
 
 FIRST_POSITION = 0
 FIRST_LIST_NUMBER = 1
+ZERO = 0
 
-DATE_LENGTH = 10
-MONTHS_IN_YEAR = 12
-CATEGORY_PARTS_COUNT = 2
+INCOME_COMMAND = "income"
+COST_COMMAND = "cost"
+STATS_COMMAND = "stats"
+CATEGORIES_COMMAND = "categories"
 
-INCOME_COMMAND_LENGTH = 3
-COST_CATEGORIES_COMMAND_LENGTH = 2
-COST_COMMAND_LENGTH = 4
-STATS_COMMAND_LENGTH = 2
+INCOME_TYPE = INCOME_COMMAND
+COST_TYPE = COST_COMMAND
+
+TYPE_KEY = "type"
+AMOUNT_KEY = "amount"
+DATE_KEY = "date"
+CATEGORY_KEY = "category"
+
+DATE_SEPARATOR = "-"
+CATEGORY_SEPARATOR = "::"
+DECIMAL_COMMA = ","
+DECIMAL_POINT = "."
+PLUS_SIGN = "+"
+MINUS_SIGN = "-"
+
+Date = tuple[int, int, int]
+MaybeDate = Date | None
 
 EXPENSE_CATEGORIES = {
     "Food": ("Supermarket", "Restaurants", "FastFood", "Coffee", "Delivery"),
@@ -73,21 +88,30 @@ financial_transactions_storage: list[dict[str, Any]] = []
 
 
 def is_leap_year(year: int) -> bool:
-    is_quad_century = year % QUAD_CENTURY_MULTIPLE == 0
-    is_simple_leap = year % LEAP_YEAR_MULTIPLE == 0
-    is_century = year % CENTURY_MULTIPLE == 0
+    is_quad_century = year % QUAD_CENTURY_MULTIPLE == ZERO
+    is_simple_leap = year % LEAP_YEAR_MULTIPLE == ZERO
+    is_century = year % CENTURY_MULTIPLE == ZERO
     return is_quad_century or (is_simple_leap and not is_century)
+
+
+def has_date_dashes(maybe_dt: str) -> bool:
+    first_dash_is_valid = maybe_dt[FIRST_DASH_INDEX] == DATE_SEPARATOR
+    second_dash_is_valid = maybe_dt[SECOND_DASH_INDEX] == DATE_SEPARATOR
+    return first_dash_is_valid and second_dash_is_valid
+
+
+def has_date_digits(maybe_dt: str) -> bool:
+    has_day_digits = maybe_dt[:DAY_END].isdigit()
+    has_month_digits = maybe_dt[MONTH_START:MONTH_END].isdigit()
+    has_year_digits = maybe_dt[YEAR_START:].isdigit()
+    return has_day_digits and has_month_digits and has_year_digits
 
 
 def has_valid_date_format(maybe_dt: str) -> bool:
     if len(maybe_dt) != DATE_LEN:
         return False
 
-    has_dashes = maybe_dt[FIRST_DASH_INDEX] == "-" and maybe_dt[SECOND_DASH_INDEX] == "-"
-    has_digits = (
-        maybe_dt[:DAY_END].isdigit() and maybe_dt[MONTH_START:MONTH_END].isdigit() and maybe_dt[YEAR_START:].isdigit()
-    )
-    return has_dashes and has_digits
+    return has_date_dashes(maybe_dt) and has_date_digits(maybe_dt)
 
 
 def get_days_in_month(month: int, year: int) -> int:
@@ -109,7 +133,7 @@ def has_valid_date_values(day: int, month: int, year: int) -> bool:
     return 1 <= day <= get_days_in_month(month, year)
 
 
-def extract_date(maybe_dt: str) -> tuple[int, int, int] | None:
+def extract_date(maybe_dt: str) -> MaybeDate:
     if not has_valid_date_format(maybe_dt):
         return None
 
@@ -124,13 +148,17 @@ def extract_date(maybe_dt: str) -> tuple[int, int, int] | None:
 
 
 def parse_amount(maybe_amount: str) -> float | None:
-    normalized = maybe_amount.replace(",", ".")
+    normalized = maybe_amount.replace(DECIMAL_COMMA, DECIMAL_POINT)
 
     if not normalized:
         return None
 
-    number_part = normalized[1:] if normalized.startswith(("+", "-")) else normalized
-    amount_parts = number_part.split(".")
+    number_part = (
+        normalized[1:]
+        if normalized.startswith((PLUS_SIGN, MINUS_SIGN))
+        else normalized
+    )
+    amount_parts = number_part.split(DECIMAL_POINT)
 
     if not number_part or len(amount_parts) > MAX_AMOUNT_PARTS:
         return None
@@ -145,18 +173,15 @@ def parse_amount(maybe_amount: str) -> float | None:
     return float(normalized)
 
 
-def date_to_sort_key(date_value: tuple[int, int, int] | None) -> tuple[int, int, int]:
+def date_to_sort_key(date_value: MaybeDate) -> Date:
     if date_value is None:
-        return 0, 0, 0
+        return ZERO, ZERO, ZERO
 
     day, month, year = date_value
     return year, month, day
 
 
-def is_same_month(
-    transaction_date: tuple[int, int, int] | None,
-    report_date: tuple[int, int, int],
-) -> bool:
+def is_same_month(transaction_date: MaybeDate, report_date: Date) -> bool:
     if transaction_date is None:
         return False
 
@@ -165,10 +190,7 @@ def is_same_month(
     return transaction_month == report_month and transaction_year == report_year
 
 
-def is_date_not_later(
-    transaction_date: tuple[int, int, int] | None,
-    report_date: tuple[int, int, int],
-) -> bool:
+def is_date_not_later(transaction_date: MaybeDate, report_date: Date) -> bool:
     return date_to_sort_key(transaction_date) <= date_to_sort_key(report_date)
 
 
@@ -176,7 +198,10 @@ def get_all_cost_categories() -> list[str]:
     categories: list[str] = []
 
     for common_category, target_categories in EXPENSE_CATEGORIES.items():
-        categories.extend(f"{common_category}::{target_category}" for target_category in target_categories)
+        categories.extend(
+            f"{common_category}{CATEGORY_SEPARATOR}{target_category}"
+            for target_category in target_categories
+        )
 
     return categories
 
@@ -186,18 +211,22 @@ def cost_categories_handler() -> str:
 
 
 def is_cost_category_exists(category_name: str) -> bool:
-    parts = category_name.split("::")
+    parts = category_name.split(CATEGORY_SEPARATOR)
 
     if len(parts) != CATEGORY_PARTS_LEN:
         return False
 
-    common_category = parts[0]
+    common_category = parts[ZERO]
     target_category = parts[1]
-    return common_category in EXPENSE_CATEGORIES and target_category in EXPENSE_CATEGORIES[common_category]
+
+    if common_category not in EXPENSE_CATEGORIES:
+        return False
+
+    return target_category in EXPENSE_CATEGORIES[common_category]
 
 
 def get_target_category(category_name: str) -> str:
-    return category_name.split("::")[1]
+    return category_name.split(CATEGORY_SEPARATOR)[1]
 
 
 def need_space_before_char(category_name: str, index: int, char: str) -> bool:
@@ -233,24 +262,43 @@ def format_detail_amount(amount: float) -> str:
     return formatted
 
 
+def save_income(amount: float, parsed_date: Date) -> None:
+    financial_transactions_storage.append(
+        {
+            TYPE_KEY: INCOME_TYPE,
+            AMOUNT_KEY: amount,
+            DATE_KEY: parsed_date,
+        }
+    )
+
+
+def save_cost(category_name: str, amount: float, parsed_date: Date) -> None:
+    financial_transactions_storage.append(
+        {
+            TYPE_KEY: COST_TYPE,
+            CATEGORY_KEY: category_name,
+            AMOUNT_KEY: amount,
+            DATE_KEY: parsed_date,
+        }
+    )
+
+
+def save_invalid_transaction() -> None:
+    financial_transactions_storage.append({})
+
+
 def income_handler(amount: float, income_date: str) -> str:
     parsed_date = extract_date(income_date)
 
-    if amount <= 0.0:
-        financial_transactions_storage.append({})
+    if amount <= ZERO:
+        save_invalid_transaction()
         return NONPOSITIVE_VALUE_MSG
 
     if parsed_date is None:
-        financial_transactions_storage.append({})
+        save_invalid_transaction()
         return INCORRECT_DATE_MSG
 
-    financial_transactions_storage.append(
-        {
-            "type": "income",
-            "amount": amount,
-            "date": parsed_date,
-        }
-    )
+    save_income(amount, parsed_date)
     return OP_SUCCESS_MSG
 
 
@@ -258,75 +306,74 @@ def cost_handler(category_name: str, amount: float, income_date: str) -> str:
     parsed_date = extract_date(income_date)
 
     if not is_cost_category_exists(category_name):
-        financial_transactions_storage.append({})
+        save_invalid_transaction()
         return NOT_EXISTS_CATEGORY
 
-    if amount <= 0.0:
-        financial_transactions_storage.append({})
+    if amount <= ZERO:
+        save_invalid_transaction()
         return NONPOSITIVE_VALUE_MSG
 
     if parsed_date is None:
-        financial_transactions_storage.append({})
+        save_invalid_transaction()
         return INCORRECT_DATE_MSG
 
-    financial_transactions_storage.append(
-        {
-            "type": "cost",
-            "category": category_name,
-            "amount": amount,
-            "date": parsed_date,
-        }
-    )
+    save_cost(category_name, amount, parsed_date)
     return OP_SUCCESS_MSG
 
 
-def get_month_result(
-    report_date: tuple[int, int, int],
-) -> tuple[float, float, dict[str, float]]:
-    income = 0.0
-    expenses = 0.0
+def transaction_belongs_to_month(transaction: dict[str, Any], report_date: Date) -> bool:
+    if not transaction:
+        return False
+
+    transaction_date = transaction[DATE_KEY]
+    is_not_future_transaction = is_date_not_later(transaction_date, report_date)
+    return is_not_future_transaction and is_same_month(transaction_date, report_date)
+
+
+def add_cost_to_details(details: dict[str, float], transaction: dict[str, Any]) -> None:
+    category = format_category_for_report(transaction[CATEGORY_KEY])
+    details[category] = details.get(category, ZERO) + transaction[AMOUNT_KEY]
+
+
+def get_month_result(report_date: Date) -> tuple[float, float, dict[str, float]]:
+    income: float = ZERO
+    expenses: float = ZERO
     details: dict[str, float] = {}
 
     for transaction in financial_transactions_storage:
-        if not transaction:
+        if not transaction_belongs_to_month(transaction, report_date):
             continue
 
-        if not is_date_not_later(transaction["date"], report_date):
+        if transaction[TYPE_KEY] == INCOME_TYPE:
+            income += transaction[AMOUNT_KEY]
             continue
 
-        if not is_same_month(transaction["date"], report_date):
-            continue
-
-        if transaction["type"] == "income":
-            income += transaction["amount"]
-        else:
-            expenses += transaction["amount"]
-            category = format_category_for_report(transaction["category"])
-            details[category] = details.get(category, 0.0) + transaction["amount"]
+        expenses += transaction[AMOUNT_KEY]
+        add_cost_to_details(details, transaction)
 
     return income, expenses, details
 
 
-def get_total_capital(report_date: tuple[int, int, int]) -> float:
-    total = 0.0
+def get_total_capital(report_date: Date) -> float:
+    total: float = ZERO
 
     for transaction in financial_transactions_storage:
         if not transaction:
             continue
 
-        if not is_date_not_later(transaction["date"], report_date):
+        if not is_date_not_later(transaction[DATE_KEY], report_date):
             continue
 
-        if transaction["type"] == "income":
-            total += transaction["amount"]
+        if transaction[TYPE_KEY] == INCOME_TYPE:
+            total += transaction[AMOUNT_KEY]
         else:
-            total -= transaction["amount"]
+            total -= transaction[AMOUNT_KEY]
 
     return total
 
 
 def add_month_result_line(lines: list[str], month_result: float) -> None:
-    if month_result >= 0.0:
+    if month_result >= ZERO:
         lines.append(f"This month, the profit amounted to {month_result:.2f} rubles.")
         return
 
@@ -383,7 +430,7 @@ def handle_income_command(parts: list[str]) -> str:
 
 
 def handle_cost_command(parts: list[str]) -> str:
-    if len(parts) == CMD_CATEGORIES_LEN and parts[1] == "categories":
+    if len(parts) == CMD_CATEGORIES_LEN and parts[1] == CATEGORIES_COMMAND:
         return cost_categories_handler()
 
     if len(parts) != CMD_COST_LEN:
@@ -415,15 +462,15 @@ def handle_command(command: str) -> str:
     if not parts:
         return UNKNOWN_COMMAND_MSG
 
-    command_name = parts[0]
+    command_name = parts[ZERO]
 
-    if command_name == "income":
+    if command_name == INCOME_COMMAND:
         return handle_income_command(parts)
 
-    if command_name == "cost":
+    if command_name == COST_COMMAND:
         return handle_cost_command(parts)
 
-    if command_name == "stats":
+    if command_name == STATS_COMMAND:
         return handle_stats_command(parts)
 
     return UNKNOWN_COMMAND_MSG
