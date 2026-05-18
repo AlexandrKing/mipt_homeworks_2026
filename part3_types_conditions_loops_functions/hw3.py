@@ -244,7 +244,7 @@ def format_detail_amount(amount: float) -> str:
 def income_handler(amount: float, income_date: str) -> str:
     parsed_date = extract_date(income_date)
 
-    if amount <= float():
+    if amount <= 0.0:
         financial_transactions_storage.append({})
         return NONPOSITIVE_VALUE_MSG
 
@@ -269,7 +269,7 @@ def cost_handler(category_name: str, amount: float, income_date: str) -> str:
         financial_transactions_storage.append({})
         return NOT_EXISTS_CATEGORY
 
-    if amount <= float():
+    if amount <= 0.0:
         financial_transactions_storage.append({})
         return NONPOSITIVE_VALUE_MSG
 
@@ -291,8 +291,8 @@ def cost_handler(category_name: str, amount: float, income_date: str) -> str:
 def get_month_result(
     report_date: tuple[int, int, int],
 ) -> tuple[float, float, dict[str, float]]:
-    income = float()
-    expenses = float()
+    income = 0.0
+    expenses = 0.0
     details: dict[str, float] = {}
 
     for transaction in financial_transactions_storage:
@@ -310,13 +310,13 @@ def get_month_result(
         else:
             expenses += transaction["amount"]
             category = format_category_for_report(transaction["category"])
-            details[category] = details.get(category, float()) + transaction["amount"]
+            details[category] = details.get(category, 0.0) + transaction["amount"]
 
     return income, expenses, details
 
 
 def get_total_capital(report_date: tuple[int, int, int]) -> float:
-    total = float()
+    total = 0.0
 
     for transaction in financial_transactions_storage:
         if not transaction:
@@ -334,7 +334,7 @@ def get_total_capital(report_date: tuple[int, int, int]) -> float:
 
 
 def add_month_result_line(lines: list[str], month_result: float) -> None:
-    if month_result >= float():
+    if month_result >= 0.0:
         lines.append(f"This month, the profit amounted to {month_result:.2f} rubles.")
         return
 
