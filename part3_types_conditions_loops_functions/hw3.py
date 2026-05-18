@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-# ruff: noqa
-# flake8: noqa
 
 from typing import Any
 
