@@ -85,9 +85,7 @@ def has_valid_date_format(maybe_dt: str) -> bool:
 
     has_dashes = maybe_dt[FIRST_DASH_INDEX] == "-" and maybe_dt[SECOND_DASH_INDEX] == "-"
     has_digits = (
-        maybe_dt[:DAY_END].isdigit()
-        and maybe_dt[MONTH_START:MONTH_END].isdigit()
-        and maybe_dt[YEAR_START:].isdigit()
+        maybe_dt[:DAY_END].isdigit() and maybe_dt[MONTH_START:MONTH_END].isdigit() and maybe_dt[YEAR_START:].isdigit()
     )
     return has_dashes and has_digits
 
@@ -178,10 +176,7 @@ def get_all_cost_categories() -> list[str]:
     categories: list[str] = []
 
     for common_category, target_categories in EXPENSE_CATEGORIES.items():
-        categories.extend(
-            f"{common_category}::{target_category}"
-            for target_category in target_categories
-        )
+        categories.extend(f"{common_category}::{target_category}" for target_category in target_categories)
 
     return categories
 
@@ -198,10 +193,7 @@ def is_cost_category_exists(category_name: str) -> bool:
 
     common_category = parts[0]
     target_category = parts[1]
-    return (
-        common_category in EXPENSE_CATEGORIES
-        and target_category in EXPENSE_CATEGORIES[common_category]
-    )
+    return common_category in EXPENSE_CATEGORIES and target_category in EXPENSE_CATEGORIES[common_category]
 
 
 def get_target_category(category_name: str) -> str:
