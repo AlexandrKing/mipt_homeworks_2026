@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from typing import Any, Literal
 
 Role = Literal['system', 'user', 'assistant']
-VALID_ROLES = {'system', 'user', 'assistant'}
+VALID_ROLES = ('system', 'user', 'assistant')
 
 
 @dataclass(slots=True)

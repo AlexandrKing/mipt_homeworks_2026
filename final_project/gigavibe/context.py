@@ -5,6 +5,7 @@ from math import ceil
 from gigavibe.messages import Message
 
 CHARS_PER_TOKEN_APPROX = 3.0
+TRIMMED_MESSAGE_PREFIX = '[...начало сообщения обрезано...]'
 
 
 def estimate_tokens(text: str) -> int:
@@ -48,7 +49,7 @@ def trim_messages(messages: list[Message], max_tokens: int) -> list[Message]:
         history = messages[1:]
 
     result_reversed: list[Message] = []
-    used_tokens = message_tokens(system_message) if system_message is not None else 0
+    used_tokens = 0 if system_message is None else message_tokens(system_message)
 
     for message in reversed(history):
         current_tokens = message_tokens(message)
@@ -62,7 +63,7 @@ def trim_messages(messages: list[Message], max_tokens: int) -> list[Message]:
             max_chars = max(1, int(available * CHARS_PER_TOKEN_APPROX))
             shortened = Message(
                 role=message.role,
-                content='[...начало сообщения обрезано...]\n' + message.content[-max_chars:],
+                content=f'{TRIMMED_MESSAGE_PREFIX}\n{message.content[-max_chars:]}',
             )
             result_reversed.append(shortened)
             break

@@ -12,19 +12,21 @@ from gigavibe.modes import DEFAULT_MODE, format_modes, get_mode
 from gigavibe.session import ChatSession
 from gigavibe.storage import DEFAULT_HISTORY_FILE, load_history, save_history
 
-HELP_TEXT = """
-Команды:
-  /help                 показать справку
-  /mode                 показать режимы
-  /mode <name>          переключить режим ответа
-  /system               показать текущий системный промпт
-  /history              показать размер истории и примерную оценку токенов
-  /reset                очистить историю диалога
-  /save [path]          сохранить историю
-  /load [path]          загрузить историю
-  /config               показать текущие настройки клиента
-  /exit                 выйти
-""".strip()
+HELP_TEXT = '\n'.join(
+    (
+        'Команды:',
+        '  /help                 показать справку',
+        '  /mode                 показать режимы',
+        '  /mode <name>          переключить режим ответа',
+        '  /system               показать текущий системный промпт',
+        '  /history              показать размер истории и примерную оценку токенов',
+        '  /reset                очистить историю диалога',
+        '  /save [path]          сохранить историю',
+        '  /load [path]          загрузить историю',
+        '  /config               показать текущие настройки клиента',
+        '  /exit                 выйти',
+    ),
+)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -96,7 +98,7 @@ def handle_command(
         path = _path_from_command(parts, history_file)
         loaded_mode, loaded_history = load_history(path)
         mode_name = loaded_mode
-        session.history[:] = loaded_history
+        session.replace_history(loaded_history)
         print(f'История загружена: {path}')
     elif name == '/config':
         print(f'provider: {config.provider}')
@@ -195,4 +197,4 @@ def main(argv: list[str] | None = None) -> int:
 
 
 if __name__ == '__main__':
-    raise SystemExit(main())
+    sys.exit(main())

@@ -20,6 +20,9 @@ class ChatSession:
     def reset(self) -> None:
         self.history.clear()
 
+    def replace_history(self, history: list[Message]) -> None:
+        self.history = history
+
     def build_request_messages(self, mode: ChatMode, max_context_tokens: int) -> list[Message]:
         system = Message(role='system', content=mode.system_prompt)
         return trim_messages([system, *self.history], max_context_tokens)
