@@ -11,3 +11,6 @@ gigachat = ["gigachat"]
 
 [project.scripts]
 gigavibe = "gigavibe.cli:main"
+
+[tool.pytest.ini_options]
+pythonpath = ["."]

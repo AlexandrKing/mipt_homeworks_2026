@@ -97,8 +97,7 @@ class GigaChatSDKClient(LLMClient):
             ) from error
 
         sdk_messages = [
-            Messages(role=message.role, content=message.content)
-            for message in messages
+            Messages(role=message.role, content=message.content) for message in messages
         ]
         chat = Chat(
             model=config.model,
