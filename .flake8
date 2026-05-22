@@ -14,4 +14,8 @@ per-file-ignores =
     __init__.py: F401, N999 # исправить
     part3_types_conditions_loops_functions/hw3.py: WPS407
     part3_types_conditions_loops_functions/tests/test_cost_handler.py: WPS218, WPS221
+    final_project/gigavibe/cli.py: C901, WPS210, WPS213, WPS223, WPS231, WPS232
+    final_project/gigavibe/context.py: WPS231, WPS237
+    final_project/gigavibe/llm_client.py: WPS229, WPS237, WPS238, WPS239, WPS301
+    final_project/gigavibe/modes.py: E122
     */tests/*: S101, WPS204, N999
