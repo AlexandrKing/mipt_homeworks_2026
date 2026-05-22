@@ -27,8 +27,14 @@ class Message:
     def from_dict(cls, data: dict[str, Any]) -> Message:
         role = data.get('role')
         content = data.get('content')
-        if role not in VALID_ROLES:
+        if role == 'system':
+            parsed_role: Role = role
+        elif role == 'user':
+            parsed_role = role
+        elif role == 'assistant':
+            parsed_role = role
+        else:
             raise ValueError(f'Unsupported message role in saved history: {role!r}')
         if not isinstance(content, str):
             raise ValueError('Saved history message content must be a string')
-        return cls(role=role, content=content)
+        return cls(role=parsed_role, content=content)
