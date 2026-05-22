@@ -1,0 +1,13 @@
+[project]
+name = "gigavibe-mipt-code"
+version = "0.1.0"
+description = "Console LLM assistant for the GigaVibeMiptCode final project"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.optional-dependencies]
+gigachat = ["gigachat"]
+
+[project.scripts]
+gigavibe = "gigavibe.cli:main"
