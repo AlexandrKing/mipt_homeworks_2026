@@ -1,0 +1,3 @@
+# Core project works without third-party packages in mock/openai-compatible mode.
+# Install this dependency only if you run with LLM_PROVIDER=gigachat.
+gigachat

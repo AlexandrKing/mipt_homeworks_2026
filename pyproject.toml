@@ -32,6 +32,7 @@ include = ["**/*.py"]
 [tool.pyrefly]
 project-includes = ["**/*.py"]
 project-excludes = ["**/*.ipynb*"]
+search-path = ["final_project"]
 
 [dependency-groups]
 lectures = [
